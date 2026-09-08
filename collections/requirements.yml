@@ -2,6 +2,7 @@
 collections:
   - name: community.sap_operations
   - name: community.general
+    version:  12.6.1
   - name: servicenow.itsm
   - name: servicenow.servicenow
 
