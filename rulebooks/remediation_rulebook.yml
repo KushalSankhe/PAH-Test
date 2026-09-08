@@ -1,0 +1,19 @@
+# rulebooks/remediation_rulebook.yml
+---
+- name: Auto-remediation on alerts
+  hosts: all
+  sources:
+    - ansible.eda.webhook:
+        host: 0.0.0.0
+        port: 5000
+  rules:
+    - name: Critical alert - auto remediate
+      condition: >
+        event.payload.alert == "service_down" and
+        event.payload.severity == "critical"
+      action:
+        run_job_template:
+          name: Remediate Service
+          organization: Default
+          extra_vars:
+            service_name: "{{ event.payload.service }}"

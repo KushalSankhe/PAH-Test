@@ -1,0 +1,9 @@
+---
+collections:
+  - name: community.sap_operations
+  - name: community.general
+  - name: servicenow.itsm
+  - name: servicenow.servicenow
+
+
+

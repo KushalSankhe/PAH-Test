@@ -1,0 +1,16 @@
+---
+- name: Debug Webhook Events
+  hosts: localhost
+  sources:
+    - ansible.eda.webhook:
+        host: 0.0.0.0
+        port: 5555
+        token: "{{ webhook_token }}"
+ 
+  rules:
+    - name: Debug incoming webhook event
+      condition: true
+      action:
+        debug:         
+          msg: "Received Event: {{ event }}"
+ 

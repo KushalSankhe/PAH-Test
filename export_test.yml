@@ -1,0 +1,108 @@
+---
+- name: Export AAP Configuration for Default and ECS
+  hosts: localhost
+  connection: local
+  # connection: ansible.platform.http
+  gather_facts: false
+  vars:
+    ##########UAT
+    aap_hostname: "{{ aap_hostname }}"
+    aap_username: "{{ aap_username }}"
+    aap_password: "{{ aap_password }}"
+
+ 
+ 
+    aap_validate_certs: false
+    secrets_as_variables: false
+    output_path: "./aap-uat-no-secret1"
+    # flatten_output: true
+    export_related_objects: false
+    platform_collection_path: /usr/share/ansible/collections/ansible_collections/ansible/platform
+ 
+ 
+    # The definitive list capturing both platform architecture and static/dynamic inventories
+    export_objects:
+#      - controller_settings
+#      - controller_organizations
+#      - controller_instance_groups
+#      - controller_execution_environments
+#      - controller_users
+#      - controller_teams
+#      - controller_roles
+#      - controller_credential_types
+#      - controller_credential_input_sources
+#      - controller_credentials
+#      - controller_applications
+#      - controller_projects
+#      - controller_labels
+#      - controller_inventories
+#      - controller_inventory_sources
+#      - controller_groups
+#      - controller_hosts
+      - controller_job_templates
+#      - controller_workflow_job_templates
+#      - controller_workflow_job_template_nodes
+#      - controller_schedules
+#      - controller_notification_templates
+#
+  # pre_tasks:
+  #   - name: Patch platform_manager.py with urljoin fix
+  #     ansible.builtin.copy:
+  #       src: "{{ playbook_dir }}/platform_manager.py"
+  #       dest: "{{ platform_collection_path }}/plugins/plugin_utils/manager/platform_manager.py"
+  #       mode: "0644"
+  tasks:
+    - name: Ensure output directory exists
+      ansible.builtin.file:
+        path: "{{ output_path }}"
+        state: directory
+        mode: "0755"
+ 
+    - name: Create temporary AAP token
+      ansible.platform.token:
+        description: "CaC export token"
+        scope: "write"
+        state: present
+        aap_hostname: "{{ aap_hostname }}"
+        aap_username: "{{ aap_username }}"
+        aap_password: "{{ aap_password }}"
+        aap_validate_certs: "{{ aap_validate_certs }}"
+      register: aap_token_result
+ 
+    - block:
+        - name: Export configurations iteratively to prevent API socket hangs
+          ansible.builtin.include_role:
+            name: infra.aap_configuration_extended.filetree_create
+          vars:
+            aap_oauthtoken: "{{ aap_token_result.ansible_facts.aap_token.token }}"
+            # Feeds exactly one object type per iteration to keep the socket stable
+            input_tag: ["{{ item }}"]
+            valid_tags: ["{{ item }}"]
+            aap_request_timeout: 60
+          loop: "{{ export_objects }}"
+          loop_control:
+            label: "{{ item }}"
+            # Extended timeout for heavy pagination (like your 336+ job templates)
+#            aap_request_timeout: 60
+ 
+      always:
+        - name: Show token information (for troubleshooting)
+          ansible.builtin.debug:
+            var: aap_token_result.ansible_facts.aap_token
+          when:
+            - aap_token_result is defined
+            - aap_token_result.ansible_facts.aap_token is defined
+ 
+        - name: Delete temporary AAP token
+          ansible.platform.token:
+            existing_token_id: "{{ aap_token_result.ansible_facts.aap_token.id }}"
+            state: absent
+            aap_hostname: "{{ aap_hostname }}"
+            aap_username: "{{ aap_username }}"
+            aap_password: "{{ aap_password }}"
+            aap_validate_certs: "{{ aap_validate_certs }}"
+          when:
+            - aap_token_result is defined
+            - aap_token_result.ansible_facts.aap_token is defined
+ 
+ 
