@@ -1,0 +1,30 @@
+---
+# Topic: servmgt.request
+# Activation: GDC-<ENV>-KAFKA-RESP-ServiceRequest
+- name: listen-for-service-request-events
+  hosts: all
+  sources:
+    - name: servmgt-request-webhook
+      ansible.eda.webhook:
+        host: 0.0.0.0
+        port: 5000
+        token: "{{ webhook_token }}"
+
+  rules:
+    - name: R001-RequestApproved-LaunchFulfilment
+      condition: >-
+        event.payload.topic == "servmgt.request"
+        and event.payload.status == "approved"
+      action:
+        run_job_template:
+          name: "GDC-DEV-REQ-FULFIL-Example"    # CHANGE per environment
+          organization: "Givaudan"
+          job_args:
+            extra_vars:
+              request_id: "{{ event.payload.id }}"   # CHANGE to the real key
+
+    - name: R099-RequestAny-LogEvent
+      condition: event.payload.topic == "servmgt.request"
+      action:
+        debug:
+          msg: "request event received: {{ event.payload }}"

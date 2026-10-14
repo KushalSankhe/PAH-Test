@@ -1,0 +1,36 @@
+---
+# Topic: servmgt.incident
+# Activation: GDC-<ENV>-KAFKA-RESP-Incident
+# Works unchanged for Method A (webhook + Route) and Method B (Event Stream):
+# with Method B you map this source to the Event Stream in the activation.
+- name: listen-for-incident-events
+  hosts: all
+  sources:
+    - name: servmgt-incident-webhook
+      ansible.eda.webhook:
+        host: 0.0.0.0
+        port: 5000
+        token: "{{ webhook_token }}"   # set as activation variable / credential, never in Git
+
+  rules:
+    # Rule names: [RuleID]-[Condition]-[Action]
+    - name: R001-IncidentCritical-LaunchResponse
+      condition: >-
+        event.payload.topic == "servmgt.incident"
+        and event.payload.severity == "critical"
+      action:
+        run_job_template:
+          name: "GDC-DEV-INC-RESP-Example"      # CHANGE per environment
+          organization: "Givaudan"
+          job_args:
+            extra_vars:
+              # CHANGE: replace "id" with the real incident key in your payload
+              incident_id: "{{ event.payload.id }}"
+              incident_severity: "{{ event.payload.severity }}"
+
+    # Optional while testing: prove events arrive. Remove or keep at low noise.
+    - name: R099-IncidentAny-LogEvent
+      condition: event.payload.topic == "servmgt.incident"
+      action:
+        debug:
+          msg: "incident event received: {{ event.payload }}"

@@ -1,0 +1,26 @@
+---
+# SBX TEST ONLY. Do not merge into the rulebooks/ folders used by DEV/UAT/PRD.
+# Purpose: prove what event persistence does. Needs TWO events to fire.
+# Post a critical incident, restart the activation, then post the approval.
+- name: persistence-correlation-test
+  hosts: all
+  sources:
+    - name: test-webhook
+      ansible.eda.webhook:
+        host: 0.0.0.0
+        port: 5000
+        token: "{{ webhook_token }}"
+
+  rules:
+    - name: R900-IncidentThenApproval-LogCorrelated
+      condition:
+        all:
+          - events.inc << event.payload.topic == "servmgt.incident"
+                          and event.payload.severity == "critical"
+          - events.req << event.payload.topic == "servmgt.request"
+                          and event.payload.status == "approved"
+                          and event.payload.incident_id == events.inc.payload.id
+        timeout: 15 minutes
+      action:
+        debug:
+          msg: "CORRELATED incident {{ events.inc.payload.id }} + approval"
