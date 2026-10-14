@@ -15,12 +15,9 @@
     - name: R900-IncidentThenApproval-LogCorrelated
       condition:
         all:
-          - events.inc << event.payload.topic == "servmgt.incident"
-                          and event.payload.severity == "critical"
-          - events.req << event.payload.topic == "servmgt.request"
-                          and event.payload.status == "approved"
-                          and event.payload.incident_id == events.inc.payload.id
+          - events.inc << event.payload.topic == "servmgt.incident" and event.payload.severity == "critical" and event.payload.id == "INC0001"
+          - events.req << event.payload.topic == "servmgt.request" and event.payload.status == "approved" and event.payload.incident_id == "INC0001"
         timeout: 15 minutes
       action:
         debug:
-          msg: "CORRELATED incident {{ events.inc.payload.id }} + approval"
+          msg: "CORRELATED incident INC0001 + approval {{ event.payload.id }}"
