@@ -1,7 +1,7 @@
 ---
-# SBX TEST ONLY. Do not merge into the rulebooks/ folders used by DEV/UAT/PRD.
-# Purpose: prove what event persistence does. Needs TWO events to fire.
-# Post a critical incident, restart the activation, then post the approval.
+# SBX / CitiusCloud TEST ONLY. Do not merge into rulebooks/ used by DEV/UAT/PRD.
+# Needs TWO events to fire: critical incident, then approval for the same incident.
+# Matched on fixed INC0001 (cross-event joins crash this Drools build).
 - name: persistence-correlation-test
   hosts: all
   sources:
@@ -20,4 +20,5 @@
         timeout: 15 minutes
       action:
         debug:
-          msg: "CORRELATED incident INC0001 + approval {{ event.payload.id }}"
+          # In multi-event rules use events.<alias>, never event.
+          msg: "CORRELATED incident {{ events.inc.payload.id }} + approval {{ events.req.payload.id }}"
